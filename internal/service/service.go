@@ -89,8 +89,19 @@ type Service struct {
 	// entradas guarda o estado das pastas de entrada das extensões.
 	entradas entradas
 
+	// exec guarda os turnos do executor de vagas que este processo roda.
+	exec execEstado
+
 	logMu   sync.Mutex
 	lastLog map[string]string
+}
+
+// esquecerLog volta a chave do logOnce ao estado sem erro, sem registrar nada:
+// o mesmo erro, se voltar, aparece de novo.
+func (s *Service) esquecerLog(chave string) {
+	s.logMu.Lock()
+	defer s.logMu.Unlock()
+	delete(s.lastLog, chave)
 }
 
 // logOnce registra a mensagem só quando ela muda para a chave (sem inundar o log).

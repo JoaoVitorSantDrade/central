@@ -34,6 +34,9 @@ const TickEvery = 2 * time.Second
 // BackupEvery é o intervalo das cópias dos bancos.
 const BackupEvery = time.Hour
 
+// ExecutorEvery é o tique do executor de vagas; uma mudança num projeto o acorda antes.
+const ExecutorEvery = 2 * time.Second
+
 // Rotação do log: ao subir, um daemon.log acima de LogMaxBytes vira .1, e as
 // cópias antigas andam até LogKeep (a mais velha é apagada).
 const (
@@ -142,6 +145,12 @@ func Run(ctx context.Context, dataDir, addr string) error {
 	entradasDone := make(chan struct{})
 	go func() { defer close(entradasDone); svc.RunEntradas(entradaCtx, service.PadraoIntervaloEntrada) }()
 	defer func() { stopEntradas(); <-entradasDone }()
+	// O executor de vagas também para antes de fechar os bancos; os turnos em
+	// curso seguem sozinhos e o próximo daemon os reconhece pelo pid.
+	execCtx, stopExec := context.WithCancel(ctx)
+	execDone := make(chan struct{})
+	go func() { defer close(execDone); svc.RunExecutor(execCtx, ExecutorEvery) }()
+	defer func() { stopExec(); <-execDone }()
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
