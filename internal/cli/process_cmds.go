@@ -270,7 +270,7 @@ func sim(s string) bool {
 }
 
 // gruposProcesso são os comandos que têm subcomando.
-var gruposProcesso = map[string]bool{"sprint": true, "item": true, "decisao": true, "regra": true}
+var gruposProcesso = map[string]bool{"sprint": true, "item": true, "decisao": true, "regra": true, "vaga": true}
 
 // runProcess roda um comando do processo; ok=false quando o comando não é do processo.
 func runProcess(cmd string, rest []string, stdin io.Reader) (m map[string]any, ok bool, err error) {

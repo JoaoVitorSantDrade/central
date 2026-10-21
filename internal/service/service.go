@@ -91,6 +91,8 @@ type Service struct {
 
 	// exec guarda os turnos do executor de vagas que este processo roda.
 	exec execEstado
+	// claude guarda as conferências do Claude Code que passaram.
+	claude claudeCache
 
 	logMu   sync.Mutex
 	lastLog map[string]string

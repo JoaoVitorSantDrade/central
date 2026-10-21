@@ -28,11 +28,13 @@ GET /v1/projetos/{id}/saude
 GET /v1/projetos/{id}/sprint
 GET /v1/projetos/{id}/stream
 GET /v1/projetos/{id}/travas
+GET /v1/projetos/{id}/vagas
 GET /v1/saude
 POST /v1/projetos/{id}/agentes
 POST /v1/projetos/{id}/caixa
 POST /v1/projetos/{id}/decisoes
 POST /v1/projetos/{id}/decisoes/{did}/{op}
+POST /v1/projetos/{id}/despertar
 POST /v1/projetos/{id}/execucoes
 POST /v1/projetos/{id}/execucoes/{eid}/batimento
 POST /v1/projetos/{id}/execucoes/{eid}/fim
@@ -58,4 +60,6 @@ POST /v1/projetos/{id}/sprint/antecipar
 POST /v1/projetos/{id}/sprint/encerrar
 POST /v1/projetos/{id}/status
 POST /v1/projetos/{id}/travas
+POST /v1/projetos/{id}/vagas
+POST /v1/projetos/{id}/vagas/{vaga}/fechar
 PUT /v1/projetos/{id}/extensoes/{nome}/entrada/{arquivo}

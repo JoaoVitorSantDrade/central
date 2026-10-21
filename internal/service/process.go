@@ -11,13 +11,19 @@ import (
 	"github.com/JoaoVitorSantDrade/central/internal/process"
 )
 
-// AbrirSprint abre a sprint do expediente (GERENTE).
+// AbrirSprint abre a sprint do expediente (GERENTE). Num projeto com
+// [execucao], abre também a vaga GERENTE1; um erro dela vira aviso.
 func (s *Service) AbrirSprint(ctx context.Context, projetoID, pasta, expediente, id string) (core.Sprint, error) {
 	p, a, err := s.agent(ctx, projetoID, pasta)
 	if err != nil {
 		return core.Sprint{}, err
 	}
-	return p.engine().AbrirSprint(ctx, a.Vaga, expediente, id)
+	sp, err := p.engine().AbrirSprint(ctx, a.Vaga, expediente, id)
+	if err != nil {
+		return core.Sprint{}, err
+	}
+	sp.Avisos = s.abrirGerenteDaSprint(ctx, p, a.Vaga)
+	return sp, nil
 }
 
 // VerSprint devolve a sprint aberta (nil se não há).

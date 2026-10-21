@@ -26,6 +26,8 @@ type Sprint struct {
 	Original         map[string]time.Time `json:"original,omitempty"`
 	AnteciparDesde   *time.Time           `json:"antecipar_desde,omitempty"`
 	AnteciparAvisado bool                 `json:"antecipar_avisado"`
+	// Avisos são o que a abertura não conseguiu fazer junto (não é gravado).
+	Avisos []string `json:"avisos,omitempty"`
 }
 
 // Horario devolve o horário da cerimônia pelo nome.

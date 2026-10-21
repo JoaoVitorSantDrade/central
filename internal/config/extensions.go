@@ -30,7 +30,7 @@ var ComandosReservados = []string{
 	"trava", "soltar", "travas", "fato", "fatos", "id", "recurso",
 	"item", "proxima", "reservar", "revisar", "reabrir", "concluir", "aprovar", "integrar",
 	"bloquear", "rejeitar", "validar", "sprint", "decisao", "saude", "orfas", "metricas",
-	"importar-locks", "exportar-locks", "brief", "regra",
+	"importar-locks", "exportar-locks", "brief", "regra", "vaga", "vagas", "despertar",
 }
 
 var (

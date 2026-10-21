@@ -192,7 +192,11 @@ func (s *Service) passoProjeto(ctx context.Context, id string, p *project, cfg c
 			return err
 		}
 	}
-	// 2. Pausa do plano e teto de custo.
+	// 2. O fim da sprint fecha as vagas abertas nela; um turno em curso termina.
+	if err := s.fecharVagasDaSprint(ctx, p, vs); err != nil {
+		return err
+	}
+	// 3. Pausa do plano e teto de custo.
 	ate, err := p.core.PlanoPausadoAte(ctx)
 	if err != nil {
 		return err
@@ -210,7 +214,7 @@ func (s *Service) passoProjeto(ctx context.Context, id string, p *project, cfg c
 	} else {
 		return nil
 	}
-	// 3. Escolha dos turnos.
+	// 4. Escolha dos turnos.
 	if vs, err = p.core.VagasExec(ctx); err != nil {
 		return err
 	}
@@ -393,6 +397,31 @@ func (s *Service) fimDeTurno(ctx context.Context, p *project, e config.ExecucaoS
 		if pausado, err := p.core.PlanoPausadoAte(ctx); err == nil && pausado.IsZero() {
 			_, err = s.conferirTetoDeCusto(ctx, p, e, agora)
 			return err
+		}
+	}
+	return nil
+}
+
+// fecharVagasDaSprint fecha as vagas abertas cuja sprint já foi encerrada.
+func (s *Service) fecharVagasDaSprint(ctx context.Context, p *project, vs []core.VagaExec) error {
+	encerrada := map[string]bool{}
+	for _, v := range vs {
+		if v.Estado == core.VagaFechada || v.Sprint == "" {
+			continue
+		}
+		fim, ok := encerrada[v.Sprint]
+		if !ok {
+			sp, err := p.core.SprintByID(ctx, v.Sprint)
+			if err != nil && !errors.Is(err, core.ErrNotFound) {
+				return err
+			}
+			fim = err == nil && sp.EncerradaEm != nil
+			encerrada[v.Sprint] = fim
+		}
+		if fim {
+			if _, err := p.core.FecharVagaExec(ctx, core.Sistema, v.Vaga); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

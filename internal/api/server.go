@@ -71,6 +71,7 @@ func montar(h *handler) *rotas {
 	rotasProcesso(mux, h)
 	rotasPainel(mux, h)
 	rotasExtensoes(mux, h)
+	rotasVagas(mux, h)
 	return mux
 }
 
