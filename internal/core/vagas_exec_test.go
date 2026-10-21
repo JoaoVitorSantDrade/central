@@ -287,3 +287,34 @@ func dadosJSON(e Event) string {
 	b, _ := json.Marshal(e.Dados)
 	return string(b)
 }
+
+func TestAbrirVagaRecusaNomeInvalido(t *testing.T) {
+	c, _ := newCoreRelogio(t)
+	for _, nome := range []string{"../x", "-w", "a/b", `a\b`, "a b", "", strings.Repeat("A", 41)} {
+		if _, err := c.AbrirVagaExec(ctx, "HUMANO", VagaExec{Vaga: nome, Papel: "EXECUTOR", Modelo: "opus", Esforco: "high"}); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("vaga %q: err = %v", nome, err)
+		}
+	}
+}
+
+func TestNaoLidasDesde(t *testing.T) {
+	c, rel := newCoreRelogio(t)
+	enter(t, c, "EXEC1", "EXECUTOR", "/w")
+	send(t, c, "G1", "EXEC1", "antiga")
+	rel.avancar(time.Minute)
+	desde := rel.t
+	if n, err := c.NaoLidasDesde(ctx, "EXEC1", desde); err != nil || n != 0 {
+		t.Fatalf("antes = %d, %v", n, err)
+	}
+	rel.avancar(time.Second)
+	send(t, c, "G1", "EXEC1", "nova")
+	if n, _ := c.NaoLidasDesde(ctx, "EXEC1", desde); n != 1 {
+		t.Fatalf("depois = %d", n)
+	}
+	if n, _ := c.NaoLidasDesde(ctx, "EXEC1", time.Time{}); n != 2 {
+		t.Fatalf("todas = %d", n)
+	}
+	if _, err := c.NaoLidasDesde(ctx, "NAO1", desde); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("vaga que não entrou = %v", err)
+	}
+}

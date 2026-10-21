@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -16,6 +17,10 @@ const (
 	VagaFechada  = "fechada"
 	VagaSuspensa = "suspensa"
 )
+
+// nomeVagaExec é o nome aceito para uma vaga executada: ele vira o nome do
+// worktree (-w) e uma pasta dos logs, então não pode ter separadores nem começar por -.
+var nomeVagaExec = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$`)
 
 // TipoVagaSuspensa é a mensagem da CENTRAL ao GERENTE quando uma vaga é suspensa.
 const TipoVagaSuspensa = "vaga.suspensa"
@@ -40,6 +45,8 @@ type VagaExec struct {
 	ProximoEm     *time.Time `json:"proximo_em"`
 	TurnoDesde    *time.Time `json:"turno_desde"`
 	TurnoMotivo   string     `json:"turno_motivo"`
+	// UltimoTurno é o início do turno mais recente: só mensagens dali em diante acordam a vaga.
+	UltimoTurno *time.Time `json:"ultimo_turno"`
 	UltimaNegacao string     `json:"ultima_negacao"`
 	CustoDia      float64    `json:"custo_dia"`
 	AbertaEm      *time.Time `json:"aberta_em"`
@@ -62,7 +69,7 @@ type TurnoFim struct {
 const FalhaLimitePlano = "limite_plano"
 
 const vagaExecCols = `vaga, papel, area, nota, sessao, pasta, modelo, esforco, estado, sprint, falhas, falha_anterior,
-	n_turnos, pid, proximo_em, turno_desde, turno_motivo, ultima_negacao, custo_dia, custo_dia_em, aberta_em, fechada_em`
+	n_turnos, pid, proximo_em, turno_desde, turno_motivo, ultimo_turno, ultima_negacao, custo_dia, custo_dia_em, aberta_em, fechada_em`
 
 func timePtr(s sql.NullString) *time.Time {
 	if !s.Valid || s.String == "" {
@@ -77,10 +84,10 @@ func diaLocal(t time.Time) string { return t.Local().Format("2006-01-02") }
 
 func (c *Core) scanVagaExec(row scanner) (VagaExec, error) {
 	var v VagaExec
-	var prox, desde, aberta, fechada sql.NullString
+	var prox, desde, ultimo, aberta, fechada sql.NullString
 	var custoEm string
 	err := row.Scan(&v.Vaga, &v.Papel, &v.Area, &v.Nota, &v.Sessao, &v.Pasta, &v.Modelo, &v.Esforco, &v.Estado, &v.Sprint,
-		&v.Falhas, &v.FalhaAnterior, &v.NTurnos, &v.PID, &prox, &desde, &v.TurnoMotivo, &v.UltimaNegacao, &v.CustoDia, &custoEm,
+		&v.Falhas, &v.FalhaAnterior, &v.NTurnos, &v.PID, &prox, &desde, &v.TurnoMotivo, &ultimo, &v.UltimaNegacao, &v.CustoDia, &custoEm,
 		&aberta, &fechada)
 	if errors.Is(err, sql.ErrNoRows) {
 		return VagaExec{}, ErrNotFound
@@ -92,6 +99,7 @@ func (c *Core) scanVagaExec(row scanner) (VagaExec, error) {
 		v.CustoDia = 0
 	}
 	v.ProximoEm, v.TurnoDesde, v.AbertaEm, v.FechadaEm = timePtr(prox), timePtr(desde), timePtr(aberta), timePtr(fechada)
+	v.UltimoTurno = timePtr(ultimo)
 	return v, nil
 }
 
@@ -114,6 +122,9 @@ func novaSessao() string {
 func (c *Core) AbrirVagaExec(ctx context.Context, quem string, v VagaExec) (VagaExec, error) {
 	if v.Vaga == "" || v.Papel == "" || v.Modelo == "" || v.Esforco == "" {
 		return VagaExec{}, invalid("vaga, papel, modelo e esforço são obrigatórios")
+	}
+	if !nomeVagaExec.MatchString(v.Vaga) {
+		return VagaExec{}, invalid("vaga %q: use letras, dígitos, _ e -, começando por letra ou dígito (até 40)", v.Vaga)
 	}
 	if v.Vaga == Todos || v.Vaga == Sistema || v.Vaga == Humano {
 		return VagaExec{}, invalid("%s é reservado", v.Vaga)
@@ -235,8 +246,8 @@ func (c *Core) IniciarTurno(ctx context.Context, vaga, motivo string, pid int) (
 		return 0, fmt.Errorf("%w: a vaga %s já tem um turno em curso", ErrConflict, vaga)
 	}
 	n := v.NTurnos + 1
-	if _, err := tx.ExecContext(ctx, `UPDATE vagas_exec SET n_turnos = ?, turno_desde = ?, pid = ?, turno_motivo = ? WHERE vaga = ?`,
-		n, now, pid, motivo, vaga); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE vagas_exec SET n_turnos = ?, turno_desde = ?, ultimo_turno = ?, pid = ?, turno_motivo = ? WHERE vaga = ?`,
+		n, now, now, pid, motivo, vaga); err != nil {
 		return 0, err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE despertares SET feito = 1 WHERE vaga = ? AND feito = 0 AND quando <= ?`, vaga, now); err != nil {
@@ -475,4 +486,18 @@ func (c *Core) CustoHoje(ctx context.Context) (float64, error) {
 	var total sql.NullFloat64
 	err := c.db.QueryRowContext(ctx, `SELECT sum(custo_dia) FROM vagas_exec WHERE custo_dia_em = ?`, diaLocal(c.now())).Scan(&total)
 	return total.Float64, err
+}
+
+// NaoLidasDesde conta as mensagens não lidas da vaga criadas a partir de desde
+// (zero conta todas). O escalonador só acorda a vaga por mensagem nova desde o
+// último turno: uma mensagem que o turno deixou sem ler não a acorda de novo.
+func (c *Core) NaoLidasDesde(ctx context.Context, vaga string, desde time.Time) (int, error) {
+	a, err := scanAgent(c.db.QueryRowContext(ctx, agentSelect+` WHERE vaga = ?`, vaga))
+	if err != nil {
+		return 0, err
+	}
+	var n int
+	err = c.db.QueryRowContext(ctx, `SELECT count(*) FROM mensagens`+forVaga+` AND criada_em >= ?`,
+		a.Cursor, a.Vaga, a.Papel, a.Vaga, desde.UTC().Format(TimeLayout)).Scan(&n)
+	return n, err
 }

@@ -250,6 +250,17 @@ func (s *Service) passoProjeto(ctx context.Context, id string, p *project, cfg c
 		if err != nil && !errors.Is(err, core.ErrNotFound) {
 			return err
 		}
+		if n > 0 && v.UltimoTurno != nil {
+			// Só mensagem nova desde o último turno acorda: uma que o turno
+			// deixou sem ler (ex.: central fora do PATH) não gera turnos sem fim.
+			novas, err := p.core.NaoLidasDesde(ctx, v.Vaga, *v.UltimoTurno)
+			if err != nil {
+				return err
+			}
+			if novas == 0 {
+				n = 0
+			}
+		}
 		switch {
 		case v.NTurnos == 0:
 			c.motivo = "primeiro turno"

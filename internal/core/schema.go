@@ -238,6 +238,7 @@ var ProjectMigrations = []string{
 		pid            INTEGER NOT NULL DEFAULT 0,
 		turno_desde    TEXT,
 		turno_motivo   TEXT NOT NULL DEFAULT '',
+		ultimo_turno   TEXT,
 		ultima_negacao TEXT NOT NULL DEFAULT '',
 		custo_dia      REAL NOT NULL DEFAULT 0,
 		custo_dia_em   TEXT NOT NULL DEFAULT '',

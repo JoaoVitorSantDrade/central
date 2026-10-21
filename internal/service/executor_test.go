@@ -530,3 +530,26 @@ func TestExecutorComClaudeFalso(t *testing.T) {
 		t.Fatalf("segundo turno: %+v", v)
 	}
 }
+
+func TestMensagemNaoLidaNaoReacordaSemFim(t *testing.T) {
+	a := novoAmbienteExec(t, "")
+	a.abrir("EXEC1", "EXECUTOR")
+	a.passoEEspera()
+	a.entrar("EXEC1", "EXECUTOR")
+	a.p.core.Send(ctx, core.SendInput{De: "G1", Para: "EXEC1", Tipo: "nota", Corpo: "1"})
+	a.rel.avancar(time.Second)
+	a.passoEEspera()
+	// o turno não leu a caixa: a mesma mensagem não acorda a vaga de novo
+	a.rel.avancar(time.Second)
+	a.passoEEspera()
+	a.passoEEspera()
+	if n := len(a.f.vagas()); n != 2 {
+		t.Fatalf("a mesma mensagem acordou de novo: %d turnos", n)
+	}
+	a.rel.avancar(time.Second)
+	a.p.core.Send(ctx, core.SendInput{De: "G1", Para: "EXEC1", Tipo: "nota", Corpo: "2"})
+	a.passoEEspera()
+	if tr := a.f.ultimo(t); len(a.f.vagas()) != 3 || !strings.Contains(tr.Texto, "(2 mensagens)") {
+		t.Fatalf("mensagem nova: %d turnos, %q", len(a.f.vagas()), tr.Texto)
+	}
+}
