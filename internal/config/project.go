@@ -54,6 +54,8 @@ type ProjectConfig struct {
 	// tipo de evento de extensão acorda.
 	Extensoes []ExtensaoSec       `toml:"extensoes" json:"extensoes"`
 	Acordar   map[string][]string `toml:"acordar" json:"acordar"`
+	// Execucao liga o executor de vagas; nil quando a seção não existe.
+	Execucao *ExecucaoSec `toml:"execucao" json:"execucao,omitempty"`
 }
 
 // ProjetoSec identifica o projeto.
@@ -115,6 +117,9 @@ func ParseProjectConfig(data []byte) (ProjectConfig, error) {
 		c.Recursos[nome] = r
 	}
 	if err := c.normalizeProcesso(); err != nil {
+		return ProjectConfig{}, err
+	}
+	if err := c.normalizeExecucao(); err != nil {
 		return ProjectConfig{}, err
 	}
 	if err := c.normalizeExtensoes(); err != nil {
