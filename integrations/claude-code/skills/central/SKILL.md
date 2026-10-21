@@ -23,3 +23,10 @@ A Central guarda o estado vivo do time (quem faz o quê, mensagens, travas, recu
 
 ## Sem trabalho (o mais importante)
 Não fique dormindo por relógio. Rode `central esperar --ate 30m` pelo shell **em segundo plano** (Bash com `run_in_background: true`), agende um despertar de reserva de 30 min e termine o turno. Quando chegar algo para você (mensagem, tarefa para revisar, sua vez na GPU, uma cerimônia da sprint), o comando termina e você é re-invocado na hora: comece o ciclo por `central caixa`.
+
+## Se a Central executa a sua vaga
+Quando a mensagem que abriu a sessão diz "Você é a vaga … do projeto …" ou "Você acordou: …", quem conduz os seus turnos é a Central (`[execucao]` no `central.toml`). Aí:
+- **não** rode `central esperar` nem agende despertares do app: ao terminar uma unidade de trabalho, termine o turno. A Central acorda você com um turno novo quando houver mensagem;
+- para esperar algo que não gera mensagem (um CI, um processo longo), use `central despertar --em <duração> "<motivo>"` e termine o turno;
+- cada turno começa por `central caixa`. Um pedido de permissão que ninguém pode responder é negado e registrado: siga por outro caminho ou avise o GERENTE.
+- O GERENTE abre e fecha vagas com `central vaga abrir <VAGA> --papel <PAPEL> [--nota "<texto>"]` e `central vaga fechar <VAGA>`, dentro do teto do `central.toml`; `central vagas` mostra o estado.

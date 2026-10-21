@@ -42,7 +42,11 @@ func (s *Service) Brief(ctx context.Context, projetoID, pasta string, curto bool
 		return contextpack.Brief{}, err
 	}
 	if !curto {
-		in.Cartao, in.FonteCartao = contextpack.Card(a.Pasta, a.Papel, canon)
+		executada := false
+		if v, err := p.core.VagaExec(ctx, a.Vaga); err == nil {
+			executada = v.Estado == core.VagaAberta
+		}
+		in.Cartao, in.FonteCartao = contextpack.Card(a.Pasta, a.Papel, canon, executada)
 		in.Nucleo, _ = contextpack.Nucleo(a.Pasta)
 		if in.Regras, err = e.RegrasDoPapel(ctx, canon); err != nil {
 			return contextpack.Brief{}, err
