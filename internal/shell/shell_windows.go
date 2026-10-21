@@ -23,7 +23,26 @@ const taskkillTimeout = 2 * time.Second
 func Command(ctx context.Context, comando string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, "cmd")
 	cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: `cmd /S /C "` + comando + `"`, HideWindow: true, CreationFlags: createNoWindow}
-	cmd.Cancel = func() error {
+	cmd.Cancel = killTree(cmd)
+	return cmd
+}
+
+// createNewProcessGroup separa o processo do console do daemon: um Ctrl+C no
+// daemon não chega a um turno do executor de vagas.
+const createNewProcessGroup = 0x00000200
+
+// Exec roda o programa direto, sem o cmd, com os argumentos citados pelo Go, e o
+// mesmo cancelamento que mata a árvore. O executor de vagas usa este caminho.
+func Exec(ctx context.Context, nome string, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, nome, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow | createNewProcessGroup}
+	cmd.Cancel = killTree(cmd)
+	return cmd
+}
+
+// killTree mata o processo e os filhos dele pelo taskkill.
+func killTree(cmd *exec.Cmd) func() error {
+	return func() error {
 		// O taskkill também tem prazo: preso, ele prenderia o medidor e o desligamento do daemon.
 		kctx, cancel := context.WithTimeout(context.Background(), taskkillTimeout)
 		defer cancel()
@@ -34,5 +53,4 @@ func Command(ctx context.Context, comando string) *exec.Cmd {
 		}
 		return nil
 	}
-	return cmd
 }

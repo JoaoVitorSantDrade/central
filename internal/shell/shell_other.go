@@ -16,3 +16,12 @@ func Command(ctx context.Context, comando string) *exec.Cmd {
 	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
 	return cmd
 }
+
+// Exec roda o programa direto, sem o sh, num grupo de processos próprio. O
+// executor de vagas usa este caminho.
+func Exec(ctx context.Context, nome string, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, nome, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
+	return cmd
+}
