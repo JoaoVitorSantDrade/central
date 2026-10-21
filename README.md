@@ -309,8 +309,32 @@ exemplo-novo = ["PESQUISADOR"]
 - **Isolamento:** o prazo vale para a árvore de processos inteira, e a saída é limitada a 1 MB. Um erro aparece na chamada (código `extensao`) sem afetar o resto.
 - **`doctor`:** confere se o executável de cada extensão existe.
 
+## Executor de vagas
+Com `[execucao]` no `central.toml`, a Central abre e conduz os agentes sozinha: cada vaga vira uma sessão do Claude Code CLI em segundo plano, e a Central roda um turno dela (`claude -p --resume`) sempre que a vaga acordaria. Ninguém precisa abrir nem reabrir sessões.
+```toml
+[execucao]
+claude          = "claude"   # comando do Claude Code CLI
+max_simultaneos = 4          # turnos ao mesmo tempo, no projeto
+prazo_turno     = "2h"       # padrão por cargo (1 min a 12 h)
+custo_dia_usd   = 0          # teto de custo estimado por dia; 0 = sem teto
+
+[execucao.cargos]            # só os cargos daqui podem ser abertos
+GERENTE  = { max = 1, modelo = "sonnet", esforco = "medium" }
+EXECUTOR = { max = 2, modelo = "opus",   esforco = "high", prazo_turno = "3h" }
+REVISOR  = { max = 2, modelo = "opus",   esforco = "high" }
+```
+- **Abrir e fechar:** o GERENTE (ou o humano, de uma pasta que não entrou ou pelo painel) roda `central vaga abrir <VAGA> --papel P [--area A] [--nota "<texto>"]` e `central vaga fechar <VAGA>`, dentro do teto do cargo. Reabrir uma vaga fechada ou suspensa retoma a mesma sessão. `central vagas` mostra o estado, o turno em curso, o custo de hoje e a pausa do plano.
+- **Sprint:** `central sprint abrir` também abre a vaga `GERENTE1`; o fim da sprint fecha as vagas abertas nela (o turno em curso termina e nenhum novo começa).
+- **O ciclo:** o primeiro turno roda na raiz do projeto com `claude -p --session-id <uuid> -w <VAGA>` (um worktree por vaga) e manda a vaga entrar e ler o brief. Os seguintes rodam no worktree com `--resume`, quando chega uma mensagem nova para a vaga ou vence um despertar. A vaga não espera: ao terminar uma unidade de trabalho, termina o turno. Para esperar algo que não gera mensagem, `central despertar --em 20m "ver o CI"`.
+- **Permissões:** `--permission-mode auto --permission-prompts none`. Um pedido que ninguém pode responder é negado e registrado (o painel mostra a última negação); a vaga não trava.
+- **Falhas:** um turno que passa do prazo ou dá erro é tentado de novo depois de 1, 5 e 15 min; na 3ª falha seguida a vaga é suspensa e o GERENTE recebe `vaga.suspensa`. O limite de uso do plano pausa todas as vagas até o reset (ou 30 min); o teto de custo diário pausa até 00:00.
+- **Reinício do daemon:** os turnos não dependem do daemon. Ao subir, ele reconhece um turno vivo pelo pid e lê o log de um que terminou enquanto ele estava fora.
+- **Logs:** cada turno grava o stream em `<dados>/projetos/<id>/turnos/<VAGA>/<n>.jsonl` (até 20 MB).
+- **Painel:** a aba Agora mostra o turno em curso, os turnos e o custo de hoje, a última negação e os botões Fechar, Reabrir e Abrir no app (`claude --desktop --resume <sessão>`), com uma faixa enquanto o plano está pausado.
+- **`doctor`:** `executor` (o comando `claude` resolve) e `executor:login` (`claude auth status` sai com 0).
+
 ## MCP
-`central mcp` serve as operações de agente pelo protocolo MCP (stdio), na pasta do projeto: `entrar`, `brief`, `caixa`, `enviar`, `responder`, `pendentes`, `esperar` (até 5 min por chamada), `status`, `agentes`, `proxima`, `reservar`, `concluir`, `bloquear`, `revisar`, `aprovar`, `rejeitar`, `integrar`, `validar`, `reabrir`, `item_ver`, `item_listar`, `item_criar`, `trava`, `soltar`, `recurso_pedir`, `recurso_soltar`, `fato_get`, `fato_set`, `saude` e `extensao`. Cada ferramenta roda o mesmo comando da CLI.
+`central mcp` serve as operações de agente pelo protocolo MCP (stdio), na pasta do projeto: `entrar`, `brief`, `caixa`, `enviar`, `responder`, `pendentes`, `esperar` (até 5 min por chamada), `status`, `agentes`, `proxima`, `reservar`, `concluir`, `bloquear`, `revisar`, `aprovar`, `rejeitar`, `integrar`, `validar`, `reabrir`, `item_ver`, `item_listar`, `item_criar`, `trava`, `soltar`, `recurso_pedir`, `recurso_soltar`, `fato_get`, `fato_set`, `saude`, `extensao`, `vaga_abrir`, `vaga_fechar`, `vagas` e `despertar`. Cada ferramenta roda o mesmo comando da CLI.
 
 ## Plugin do Claude Code
 Em [integrations/claude-code](integrations/claude-code): a skill `central` (o ciclo do agente), o servidor MCP e um hook `SessionStart` que injeta `central brief --curto --md` depois de um resumo automático. Instale pelo marketplace deste repositório:

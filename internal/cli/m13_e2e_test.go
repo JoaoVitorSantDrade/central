@@ -153,3 +153,32 @@ func TestMCPVagas(t *testing.T) {
 		t.Fatalf("despertar de vaga não executada = %s", out)
 	}
 }
+
+func TestDoctorExecutor(t *testing.T) {
+	e := newEnv(t)
+	a := e.project("a")
+	withExecucao(t, a, claudeFalso(t))
+	code, m := e.run(a, "", "doctor")
+	vs := verificacoes(t, m)
+	for _, nome := range []string{"executor", "executor:login"} {
+		if v, ok := vs[nome]; !ok || v["ok"] != true {
+			t.Errorf("%s = %v (doctor %d)", nome, v, code)
+		}
+	}
+	b := e.project("b")
+	withExecucao(t, b, "claude-que-nao-existe-xyz")
+	_, m = e.run(b, "", "doctor")
+	vs = verificacoes(t, m)
+	if v := vs["executor"]; v["ok"] != false || !strings.Contains(fmt.Sprint(v["detalhe"]), "claude-que-nao-existe-xyz") {
+		t.Fatalf("executor sem claude = %v", v)
+	}
+	if v := vs["executor:login"]; v["ok"] != false {
+		t.Fatalf("executor:login sem claude = %v", v)
+	}
+	// sem [execucao], o doctor não fala do executor
+	c := e.project("c")
+	_, m = e.run(c, "", "doctor")
+	if _, ok := verificacoes(t, m)["executor"]; ok {
+		t.Fatal("executor sem [execucao]")
+	}
+}

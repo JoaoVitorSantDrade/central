@@ -1,5 +1,17 @@
 # Mudanças
 
+## 1.3.0 (2026-10-21)
+
+**Executor de vagas: a Central abre e supervisiona os agentes.**
+- `[execucao]` no `central.toml`: cada vaga vira uma sessão do Claude Code CLI, e a Central roda um turno (`claude -p --resume`) quando a vaga acordaria: mensagem nova, despertar, primeiro turno ou nova tentativa.
+- `central vaga abrir|fechar`, `central vagas` e `central despertar`, com as rotas `/v1` e as ferramentas MCP correspondentes. Só o GERENTE ou o humano abre e fecha, dentro do teto por cargo.
+- `central sprint abrir` abre a `GERENTE1`; o fim da sprint fecha as vagas.
+- Fila com `max_simultaneos` (GERENTE primeiro), novas tentativas em 1, 5 e 15 min, suspensão na 3ª falha, pausa de todas no limite do plano e teto de custo diário opcional.
+- Um turno sobrevive a um reinício do daemon; a recuperação o reconhece pelo pid e pelo log.
+- Painel: turno em curso, custo, última negação e os botões Fechar, Reabrir e Abrir no app; faixa de plano pausado.
+- `doctor`: `executor` e `executor:login`. O brief e a skill dizem a uma vaga executada para terminar o turno em vez de esperar.
+- Tudo aditivo: projeto sem `[execucao]` funciona como antes.
+
 ## 1.2.0 (2026-10-21)
 
 **O plugin do Claude Code traz a Central junto.**

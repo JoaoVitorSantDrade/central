@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"time"
@@ -190,7 +191,30 @@ func checkProjeto(dataDir string) []verificacao {
 		}
 		vs = append(vs, ev)
 	}
+	if cfg.Execucao != nil {
+		vs = append(vs, checkExecutor(cfg.Execucao.Claude, service.MeterDir(proj.Root, dataDir))...)
+	}
 	return vs
+}
+
+// checkExecutor confere o Claude Code do [execucao]: o comando resolve
+// (executor) e tem login (executor:login, `claude auth status` sai com 0).
+func checkExecutor(claude, dir string) []verificacao {
+	v := verificacao{Nome: "executor"}
+	login := verificacao{Nome: "executor:login"}
+	caminho, err := exec.LookPath(claude)
+	if err != nil {
+		v.Detalhe = fmt.Sprintf("%q não resolve (instale o Claude Code CLI ou ajuste [execucao] claude): %v", claude, err)
+		login.Detalhe = "sem o comando do Claude Code"
+		return []verificacao{v, login}
+	}
+	v.OK, v.Detalhe = true, caminho
+	if err := service.RodarClaudeAuth(context.Background(), claude, dir); err != nil {
+		login.Detalhe = err.Error()
+	} else {
+		login.OK, login.Detalhe = true, fmt.Sprintf("%q auth status ok", claude)
+	}
+	return []verificacao{v, login}
 }
 
 // checkPorta confere a porta da API. Com o daemon respondendo, ela é dele;
