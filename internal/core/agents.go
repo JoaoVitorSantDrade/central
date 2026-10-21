@@ -15,6 +15,8 @@ const (
 	EstadoTrabalhando = "trabalhando"
 	EstadoSumido      = "sumido"
 	EstadoEncerrado   = "encerrado"
+	// EstadoSuspenso é a vaga executada que a Central suspendeu depois de 3 falhas.
+	EstadoSuspenso = "suspenso"
 )
 
 // PadraoSumidoApos é o tempo sem batimento até a vaga aparecer como sumida.
@@ -86,9 +88,12 @@ func enterTx(ctx context.Context, tx *sql.Tx, now, vaga, papel, pasta, area stri
 // A última é o batimento mais recente das execuções vivas da vaga (para o
 // sumido), numa subconsulta: o banco tem uma conexão só, e o sumido é decidido
 // com as linhas ainda abertas. Toda leitura de vaga usa estas colunas, para o
-// sumido ter uma regra só.
+// sumido ter uma regra só. As duas últimas são o estado da vaga executada
+// (vagas_exec) e se ela tem turno em curso: com elas, o estado vem do executor.
 const agentCols = `a.vaga, a.papel, a.pasta, a.entrou_em, a.batimento, a.cursor, a.estado, a.status, a.area,
-	(SELECT max(e.batimento) FROM execucoes e WHERE e.vaga = a.vaga AND e.fim IS NULL)`
+	(SELECT max(e.batimento) FROM execucoes e WHERE e.vaga = a.vaga AND e.fim IS NULL),
+	(SELECT v.estado FROM vagas_exec v WHERE v.vaga = a.vaga),
+	(SELECT v.turno_desde IS NOT NULL FROM vagas_exec v WHERE v.vaga = a.vaga)`
 
 const agentSelect = `SELECT ` + agentCols + ` FROM agentes a`
 
@@ -96,13 +101,14 @@ type scanner interface{ Scan(dest ...any) error }
 
 // agentRaw guarda as colunas de agentCols que precisam de conversão.
 type agentRaw struct {
-	entrou, bat string
-	exec        sql.NullString
+	entrou, bat      string
+	exec, vagaEstado sql.NullString
+	emTurno          sql.NullBool
 }
 
 // dest devolve os destinos de Scan das colunas de agentCols, em ordem.
 func (r *agentRaw) dest(a *Agent) []any {
-	return []any{&a.Vaga, &a.Papel, &a.Pasta, &r.entrou, &r.bat, &a.Cursor, &a.Estado, &a.Status, &a.Area, &r.exec}
+	return []any{&a.Vaga, &a.Papel, &a.Pasta, &r.entrou, &r.bat, &a.Cursor, &a.Estado, &a.Status, &a.Area, &r.exec, &r.vagaEstado, &r.emTurno}
 }
 
 // fill converte as colunas lidas para a.
@@ -110,6 +116,25 @@ func (r *agentRaw) fill(a *Agent) {
 	a.EntrouEm, a.Batimento = parseTime(r.entrou), parseTime(r.bat)
 	if r.exec.Valid {
 		a.execBatimento = parseTime(r.exec.String)
+	}
+	if r.vagaEstado.Valid {
+		a.Executada = true
+		a.Estado = estadoExecutado(r.vagaEstado.String, r.emTurno.Bool)
+	}
+}
+
+// estadoExecutado deriva o estado visível de uma vaga executada: ela não tem
+// batimento entre turnos, então nunca é sumida (spec do executor §3.2).
+func estadoExecutado(estado string, emTurno bool) string {
+	switch {
+	case emTurno:
+		return EstadoTrabalhando
+	case estado == VagaSuspensa:
+		return EstadoSuspenso
+	case estado == VagaFechada:
+		return EstadoEncerrado
+	default:
+		return EstadoOcioso
 	}
 }
 
@@ -242,7 +267,7 @@ func (c *Core) Agents(ctx context.Context) ([]Agent, error) {
 // há mais de SumidoApos e sem execução viva com batimento dentro desse prazo
 // (spec §5). É a única regra do sumido.
 func (c *Core) sumido(a Agent, now time.Time, s Settings) bool {
-	if a.Estado == EstadoEncerrado {
+	if a.Estado == EstadoEncerrado || a.Executada {
 		return false
 	}
 	if !a.execBatimento.IsZero() && now.Sub(a.execBatimento) <= s.SumidoApos {

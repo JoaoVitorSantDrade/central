@@ -43,6 +43,8 @@ type Agent struct {
 	Estado    string    `json:"estado"`
 	Status    string    `json:"status"`
 	Area      string    `json:"area"`
+	// Executada diz que a Central conduz os turnos da vaga (vagas_exec).
+	Executada bool `json:"executada,omitempty"`
 	// execBatimento é o batimento mais recente das execuções vivas da vaga
 	// (zero sem nenhuma); só o sumido o usa.
 	execBatimento time.Time

@@ -2,6 +2,7 @@ package process
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -191,5 +192,44 @@ func TestMetricasIgnoramEventoSemMudancaDeEstado(t *testing.T) {
 	}
 	if m.Integradas != 1 || m.Latencias["concluida_integrada"].N != 1 || m.Latencias["concluida_integrada"].MedianaS != 600 {
 		t.Fatalf("métricas = %+v", m)
+	}
+}
+
+func TestVagaExecutadaNuncaSumidaNaSaude(t *testing.T) {
+	env := timeEnv(t, NewRoles(nil, nil, nil))
+	if _, err := env.c.AbrirVagaExec(ctx, "G", core.VagaExec{Vaga: "F1", Papel: "EXECUTOR", Modelo: "opus", Esforco: "high"}); err != nil {
+		t.Fatal(err)
+	}
+	env.pronta("T-001")
+	env.acao("F1", AcaoReservar, "T-001", Args{})
+	env.advance(13 * time.Hour)
+	env.vivos("F1")
+	s, err := env.e.Saude(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range s.Sumidos {
+		if a.Vaga == "F1" {
+			t.Fatalf("vaga executada aparece sumida: %+v", s.Sumidos)
+		}
+	}
+	if orfas, _ := env.e.Orfas(ctx); len(orfas) != 0 {
+		t.Fatalf("órfãs de vaga executada aberta = %+v", orfas)
+	}
+	// suspensa: a saúde avisa e as tarefas dela viram órfãs
+	env.c.IniciarTurno(ctx, "F1", "x", 0)
+	if _, err := env.c.TerminarTurno(ctx, "F1", core.TurnoFim{Falha: "erro", Suspender: true}); err != nil {
+		t.Fatal(err)
+	}
+	s, _ = env.e.Saude(ctx)
+	achou := false
+	for _, a := range s.Alertas {
+		achou = achou || strings.Contains(a, "F1") && strings.Contains(a, "suspensa")
+	}
+	if !achou {
+		t.Fatalf("alertas = %v", s.Alertas)
+	}
+	if orfas, _ := env.e.Orfas(ctx); len(orfas) != 1 {
+		t.Fatalf("órfãs de vaga suspensa = %+v", orfas)
 	}
 }

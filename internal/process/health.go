@@ -50,6 +50,9 @@ func (e *Engine) Saude(ctx context.Context) (Saude, error) {
 			s.Sumidos = append(s.Sumidos, a)
 			s.Alertas = append(s.Alertas, fmt.Sprintf("%s (%s) sumida desde %s", a.Vaga, a.Papel, a.Batimento.Format("15:04")))
 		}
+		if a.Estado == core.EstadoSuspenso {
+			s.Alertas = append(s.Alertas, fmt.Sprintf("%s (%s) suspensa pela Central depois de falhas seguidas: reabra com central vaga abrir %s", a.Vaga, a.Papel, a.Vaga))
+		}
 	}
 	estados := make([]string, 0, len(e.cfg.LimiteParado))
 	for est := range e.cfg.LimiteParado {
@@ -130,7 +133,7 @@ func (e *Engine) Orfas(ctx context.Context) ([]core.Item, error) {
 		a, ok := por[it.Dono]
 		switch {
 		case !ok, a.Estado == core.EstadoEncerrado:
-		case a.Estado == core.EstadoSumido && agora.Sub(a.Batimento) > e.cfg.OrfasApos:
+		case (a.Estado == core.EstadoSumido || a.Estado == core.EstadoSuspenso) && agora.Sub(a.Batimento) > e.cfg.OrfasApos:
 		default:
 			continue
 		}

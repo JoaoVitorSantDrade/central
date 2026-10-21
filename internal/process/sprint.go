@@ -282,7 +282,7 @@ func (e *Engine) condicaoAntecipado(ctx context.Context) (bool, error) {
 				continue
 			}
 			executores++
-			if a.Estado != core.EstadoOcioso && a.Estado != core.EstadoSumido {
+			if a.Estado != core.EstadoOcioso && a.Estado != core.EstadoSumido && a.Estado != core.EstadoSuspenso {
 				return nil
 			}
 		}

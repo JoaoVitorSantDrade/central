@@ -217,4 +217,45 @@ var ProjectMigrations = []string{
 		criada_em     TEXT NOT NULL,
 		atualizada_em TEXT NOT NULL
 	);`,
+	// 6: executor de vagas. A Central abre as vagas como sessões do Claude Code e
+	// conduz os turnos delas; despertares são turnos pedidos com hora; o estado do
+	// executor (a pausa do plano) é uma linha só.
+	`CREATE TABLE vagas_exec (
+		vaga           TEXT PRIMARY KEY,
+		papel          TEXT NOT NULL,
+		area           TEXT NOT NULL DEFAULT '',
+		nota           TEXT NOT NULL DEFAULT '',
+		sessao         TEXT NOT NULL,
+		pasta          TEXT NOT NULL DEFAULT '',
+		modelo         TEXT NOT NULL,
+		esforco        TEXT NOT NULL,
+		estado         TEXT NOT NULL,
+		sprint         TEXT NOT NULL DEFAULT '',
+		falhas         INTEGER NOT NULL DEFAULT 0,
+		falha_anterior TEXT NOT NULL DEFAULT '',
+		n_turnos       INTEGER NOT NULL DEFAULT 0,
+		proximo_em     TEXT,
+		pid            INTEGER NOT NULL DEFAULT 0,
+		turno_desde    TEXT,
+		turno_motivo   TEXT NOT NULL DEFAULT '',
+		ultima_negacao TEXT NOT NULL DEFAULT '',
+		custo_dia      REAL NOT NULL DEFAULT 0,
+		custo_dia_em   TEXT NOT NULL DEFAULT '',
+		aberta_em      TEXT NOT NULL,
+		fechada_em     TEXT
+	);
+	CREATE TABLE despertares (
+		id     INTEGER PRIMARY KEY AUTOINCREMENT,
+		vaga   TEXT NOT NULL,
+		quando TEXT NOT NULL,
+		motivo TEXT NOT NULL,
+		feito  INTEGER NOT NULL DEFAULT 0
+	);
+	CREATE INDEX despertares_pendentes ON despertares (feito, quando);
+	CREATE TABLE executor_estado (
+		id                INTEGER PRIMARY KEY CHECK (id = 1),
+		plano_pausado_ate TEXT,
+		motivo            TEXT NOT NULL DEFAULT ''
+	);
+	INSERT INTO executor_estado (id) VALUES (1);`,
 }
