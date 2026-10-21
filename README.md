@@ -5,7 +5,7 @@ Coordenação local de times de agentes: mensagens, tarefas, travas, recursos e 
 - Design: [docs/spec.md](docs/spec.md) · contrato das extensões: [docs/ext-v1.md](docs/ext-v1.md) · mudanças: [CHANGELOG.md](CHANGELOG.md)
 - Planos: [M0](docs/plans/m0-piloto.md) · [M1a](docs/plans/m1a-nucleo.md) · [M1b](docs/plans/m1b-processo.md) · [M2](docs/plans/m2-contexto.md) · [M3](docs/plans/m3-painel.md) · [M4a](docs/plans/m4a-extensoes.md) · [M4b](docs/plans/m4b-lyriccut.md) · [V1](docs/plans/v1-release.md) · registros em [docs/registro/](docs/registro/)
 
-Estado: **1.1.0**. A versão inclui:
+Estado: **1.2.0**. A versão inclui:
 - o núcleo: mensagens que acordam na hora, respostas com prazo, travas, recursos com dimensões e medidor, `rodar`, fatos, backups e `doctor`;
 - o processo de sprint: papéis, tarefas, `proxima`, decisões de duas chaves, cerimônias, adaptador do backlog em git, saúde e métricas;
 - o brief por papel e as regras do time;
@@ -17,11 +17,18 @@ Os contratos `/v1`, `ext/v1` e o formato do `central.toml` estão congelados. Qu
 
 ## Instalar
 
-**Windows** (PowerShell):
+**Pelo Claude Code** (o plugin já traz a Central):
+```
+/plugin marketplace add JoaoVitorSantDrade/central
+/plugin install central@central
+```
+O plugin instala o binário no primeiro uso, ou quando uma sessão começa, e o mantém na versão do plugin. A partir daí, o `central` funciona no Bash dos agentes e no seu terminal. Detalhes em [integrations/claude-code](integrations/claude-code).
+
+**Sem o Claude Code, no Windows** (PowerShell):
 ```powershell
 irm https://github.com/JoaoVitorSantDrade/central/releases/latest/download/install.ps1 | iex
 ```
-**Linux e macOS:**
+**Sem o Claude Code, no Linux e no macOS:**
 ```bash
 curl -fsSL https://github.com/JoaoVitorSantDrade/central/releases/latest/download/install.sh | sh
 ```
@@ -37,7 +44,6 @@ Depois, abra um terminal novo e rode `central versao`.
 - **Atualizar:** rode `central atualizar`. Ele baixa a última release, confere o SHA256 e se troca. O daemon antigo é substituído sozinho no próximo comando, e os bancos migram com cópia antes.
 - **Desinstalar:** rode `central desinstalar`. Ele tira o binário, a pasta do PATH e o plugin. Os dados (`%LOCALAPPDATA%\central`) ficam.
 - **Sem o instalador:** baixe o binário da [release](https://github.com/JoaoVitorSantDrade/central/releases/latest) e rode `.\central-windows-amd64.exe instalar`. Com Go 1.26+, `go install github.com/JoaoVitorSantDrade/central/cmd/central@latest`.
-- **Plugin à mão:** `/plugin marketplace add JoaoVitorSantDrade/central`, depois `/plugin install central@central`.
 - **Encerrar o daemon:** `central parar`. O próximo comando sobe outro.
 
 ## Uso rápido

@@ -2,11 +2,21 @@
   "hooks": {
     "SessionStart": [
       {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}\"/scripts/garantir-central.sh --atualizar >/dev/null",
+            "timeout": 180
+          }
+        ]
+      },
+      {
         "matcher": "compact|resume",
         "hooks": [
           {
             "type": "command",
-            "command": "central brief --curto --md --se-projeto",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}\"/bin/central brief --curto --md --se-projeto",
             "timeout": 30
           }
         ]

@@ -36,7 +36,7 @@ func TestVersaoPorLdflags(t *testing.T) {
 }
 
 func TestVersaoPadrao(t *testing.T) {
-	if Versao != "1.1.0" {
-		t.Fatalf("Versao = %q, quer 1.1.0", Versao)
+	if Versao != "1.2.0" {
+		t.Fatalf("Versao = %q, quer 1.2.0", Versao)
 	}
 }

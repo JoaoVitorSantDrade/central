@@ -1,0 +1,8 @@
+#!/bin/sh
+# Shim do plugin da Central: o Claude Code põe esta pasta no PATH do Bash dos
+# agentes. Roda a Central instalada; na primeira vez, instala (veja
+# ../scripts/garantir-central.sh). A saída do comando é a da própria Central.
+set -eu
+aqui="$(cd "$(dirname "$0")" && pwd)"
+alvo="$(sh "$aqui/../scripts/garantir-central.sh")"
+exec "$alvo" "$@"

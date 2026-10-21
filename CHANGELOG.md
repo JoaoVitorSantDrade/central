@@ -1,5 +1,13 @@
 # Mudanças
 
+## 1.2.0 (2026-10-21)
+
+**O plugin do Claude Code traz a Central junto.**
+- O `bin/central` do plugin entra no PATH do Bash dos agentes. Na primeira chamada, ele baixa a release, confere o SHA256 e instala.
+- Um hook de início de sessão garante a instalação e atualiza um binário mais antigo que a versão do plugin.
+- O hook pós-resumo passa a chamar a Central pelo shim.
+- A versão do plugin acompanha a da Central.
+
 ## 1.1.0 (2026-10-21)
 
 Instalação de um comando e repositório público, com licença MIT.

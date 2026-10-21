@@ -23,17 +23,25 @@ func lerJSON(t *testing.T, p string) map[string]any {
 	return m
 }
 
-// comandoDoHook devolve os argumentos (sem o "central") do hook SessionStart.
+// comandoDoHook devolve os argumentos (depois do shim bin/central) do hook
+// SessionStart que reinjeta o brief depois de um resumo.
 func comandoDoHook(t *testing.T) []string {
 	t.Helper()
 	h := lerJSON(t, filepath.Join(pluginDir, "hooks", "hooks.json"))
-	ss := h["hooks"].(map[string]any)["SessionStart"].([]any)[0].(map[string]any)
-	cmd := ss["hooks"].([]any)[0].(map[string]any)["command"].(string)
-	campos := strings.Fields(cmd)
-	if campos[0] != "central" {
-		t.Fatalf("hook chama %q", campos[0])
+	for _, e := range h["hooks"].(map[string]any)["SessionStart"].([]any) {
+		ss := e.(map[string]any)
+		if ss["matcher"] != "compact|resume" {
+			continue
+		}
+		cmd := ss["hooks"].([]any)[0].(map[string]any)["command"].(string)
+		_, depois, ok := strings.Cut(cmd, `/bin/central `)
+		if !ok {
+			t.Fatalf("o hook não chama o shim do plugin: %q", cmd)
+		}
+		return strings.Fields(depois)
 	}
-	return campos[1:]
+	t.Fatal("sem hook compact|resume")
+	return nil
 }
 
 func TestPluginManifestosValidos(t *testing.T) {
