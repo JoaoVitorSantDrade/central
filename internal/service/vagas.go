@@ -230,3 +230,34 @@ func (s *Service) abrirGerenteDaSprint(ctx context.Context, p *project, quem str
 	}
 	return nil
 }
+
+// AbrirNoApp abre a sessão da vaga no app do Claude Code
+// (`<claude> --desktop --resume <sessão>`, na pasta da vaga), sem esperar.
+// Recusa enquanto um turno roda, para os dois não escreverem na mesma sessão.
+func (s *Service) AbrirNoApp(ctx context.Context, projetoID, vaga string) error {
+	p, err := s.project(ctx, projetoID)
+	if err != nil {
+		return err
+	}
+	e, err := execucaoDe(p)
+	if err != nil {
+		return err
+	}
+	v, err := p.core.VagaExec(ctx, vaga)
+	if err != nil {
+		return fmt.Errorf("vaga %s: %w", vaga, err)
+	}
+	if v.Pasta == "" {
+		return fmt.Errorf("%w: a vaga %s ainda não teve um turno (a sessão não existe)", core.ErrConflict, vaga)
+	}
+	if v.TurnoDesde != nil {
+		return fmt.Errorf("%w: a vaga %s está num turno; espere ele terminar ou feche a vaga", core.ErrConflict, vaga)
+	}
+	cmd := shell.Exec(context.Background(), e.Claude, "--desktop", "--resume", v.Sessao)
+	cmd.Dir = v.Pasta
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("%w: não consegui rodar %q: %v", core.ErrInvalid, e.Claude, err)
+	}
+	go cmd.Wait()
+	return nil
+}

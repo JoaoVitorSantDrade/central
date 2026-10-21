@@ -15,6 +15,16 @@ func rotasVagas(mux *rotas, h *handler) {
 	mux.HandleFunc("GET /v1/projetos/{id}/vagas", h.vagas)
 	mux.HandleFunc("POST /v1/projetos/{id}/vagas/{vaga}/fechar", h.fecharVaga)
 	mux.HandleFunc("POST /v1/projetos/{id}/despertar", h.despertar)
+	mux.HandleFunc("POST /v1/projetos/{id}/vagas/{vaga}/app", h.abrirNoApp)
+}
+
+// abrirNoApp abre a sessão da vaga no app do Claude Code (o botão do painel).
+func (h *handler) abrirNoApp(w http.ResponseWriter, r *http.Request) {
+	if err := h.s.AbrirNoApp(r.Context(), r.PathValue("id"), r.PathValue("vaga")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 func (h *handler) abrirVaga(w http.ResponseWriter, r *http.Request) {

@@ -124,6 +124,7 @@ a.cartao:hover { text-decoration: none; border-color: var(--acento); }
 .s-trabalhando { background: var(--ok-suave); color: var(--ok); }
 .s-ocioso { background: var(--alerta-suave); color: var(--alerta); }
 .s-sumido { background: var(--perigo-suave); color: var(--perigo); }
+.s-suspenso { background: var(--perigo-suave); color: var(--perigo); }
 .s-encerrado { background: var(--neutro-suave); color: var(--neutro); }
 .s-perigo { background: var(--perigo-suave); color: var(--perigo); }
 .s-alerta { background: var(--alerta-suave); color: var(--alerta); }
@@ -230,3 +231,9 @@ textarea { width: 100%; resize: vertical; min-height: 64px; }
 .galeria img, .galeria video, .galeria .sem-midia { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: var(--superficie-2); }
 .galeria .sem-midia { display: flex; align-items: center; justify-content: center; color: var(--texto-3); font-size: 12px; }
 .galeria figcaption { padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 4px; }
+
+/* executor de vagas */
+.faixa-pausa { background: var(--alerta-suave, var(--perigo-suave)); color: var(--texto); border-left: 3px solid var(--alerta); border-radius: var(--raio); padding: 10px 14px; margin-bottom: 14px; }
+.negacao { color: var(--perigo); opacity: .7; font-size: 12px; max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.botoes-vaga { gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.botoes-vaga .botao { padding: 2px 8px; font-size: 12px; }

@@ -233,3 +233,27 @@ func TestVagaExecutadaNuncaSumidaNaSaude(t *testing.T) {
 		t.Fatalf("órfãs de vaga suspensa = %+v", orfas)
 	}
 }
+
+func TestSaudeAvisaVagaSuspensaQueNuncaEntrou(t *testing.T) {
+	env := timeEnv(t, NewRoles(nil, nil, nil))
+	if _, err := env.c.AbrirVagaExec(ctx, "G", core.VagaExec{Vaga: "EXEC9", Papel: "EXECUTOR", Modelo: "opus", Esforco: "high"}); err != nil {
+		t.Fatal(err)
+	}
+	env.c.IniciarTurno(ctx, "EXEC9", "x", 0)
+	if _, err := env.c.TerminarTurno(ctx, "EXEC9", core.TurnoFim{Falha: "sem_claude", Suspender: true}); err != nil {
+		t.Fatal(err)
+	}
+	s, err := env.e.Saude(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, a := range s.Alertas {
+		if strings.Contains(a, "EXEC9") && strings.Contains(a, "suspensa") {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Fatalf("alertas = %v", s.Alertas)
+	}
+}

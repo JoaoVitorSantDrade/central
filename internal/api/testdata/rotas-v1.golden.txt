@@ -61,5 +61,6 @@ POST /v1/projetos/{id}/sprint/encerrar
 POST /v1/projetos/{id}/status
 POST /v1/projetos/{id}/travas
 POST /v1/projetos/{id}/vagas
+POST /v1/projetos/{id}/vagas/{vaga}/app
 POST /v1/projetos/{id}/vagas/{vaga}/fechar
 PUT /v1/projetos/{id}/extensoes/{nome}/entrada/{arquivo}

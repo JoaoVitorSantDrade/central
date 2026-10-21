@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -145,5 +146,34 @@ func TestFimDaSprintFechaVagas(t *testing.T) {
 	}
 	if n := len(a.f.vagas()); n != 2 {
 		t.Fatalf("turno novo depois do fim da sprint: %v", a.f.vagas())
+	}
+}
+
+func TestAbrirNoAppRodaDesktop(t *testing.T) {
+	a := novoAmbienteExec(t, "")
+	a.comClaude(t, claudeFalso(t))
+	a.abrir("EXEC1", "EXECUTOR")
+	if err := a.s.AbrirNoApp(ctx, "p", "EXEC1"); !errors.Is(err, core.ErrConflict) {
+		t.Fatalf("antes do primeiro turno = %v", err)
+	}
+	a.passoEEspera()
+	v := a.vaga("EXEC1")
+	os.MkdirAll(v.Pasta, 0o755)
+	args := filepath.Join(t.TempDir(), "args.txt")
+	t.Setenv("CLAUDE_FALSO_ARGS", args)
+	if err := a.s.AbrirNoApp(ctx, "p", "EXEC1"); err != nil {
+		t.Fatal(err)
+	}
+	var got []byte
+	for fim := time.Now().Add(10 * time.Second); time.Now().Before(fim); time.Sleep(20 * time.Millisecond) {
+		if got, _ = os.ReadFile(args); len(got) > 0 {
+			break
+		}
+	}
+	if want := "--desktop\n--resume\n" + v.Sessao + "\n"; string(got) != want {
+		t.Fatalf("args = %q, want %q", got, want)
+	}
+	if err := a.s.AbrirNoApp(ctx, "p", "NAO1"); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("vaga inexistente = %v", err)
 	}
 }

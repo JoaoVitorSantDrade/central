@@ -25,7 +25,7 @@ const COLUNA_DE = { bloqueada: 'em_andamento', rejeitada: 'em_andamento' };
 const POR_COLUNA = 30;
 const CORES_ESTADO = {
   ativo: 'var(--acento)', trabalhando: 'var(--ok)', ocioso: 'var(--alerta)',
-  sumido: 'var(--perigo)', encerrado: 'var(--neutro-suave)',
+  sumido: 'var(--perigo)', encerrado: 'var(--neutro-suave)', suspenso: 'var(--perigo)',
 };
 const FINAIS_DECISAO = ['aprovada', 'vetada'];
 const REFRESCO_MIN_MS = 1000;
@@ -256,9 +256,18 @@ function proximaCerimonia(s) {
 
 async function vistaAgora(id) {
   const p = `/projetos/${enc(id)}`;
-  const [{ agentes }, { recursos }, { itens }, saude] = await Promise.all([
+  const [{ agentes }, { recursos }, { itens }, saude, exec] = await Promise.all([
     api(`${p}/agentes`), api(`${p}/recursos`), api(`${p}/itens?estado=em_andamento,bloqueada`), api(`${p}/saude`).then((r) => r.saude),
+    api(`${p}/vagas`),
   ]);
+  // Vagas que a Central executa: as que ainda não entraram também aparecem.
+  const execDe = Object.fromEntries(exec.vagas.map((v) => [v.vaga, v]));
+  for (const v of exec.vagas) {
+    if (!agentes.some((a) => a.vaga === v.vaga)) {
+      agentes.push({ vaga: v.vaga, papel: v.papel, area: v.area, status: '', batimento: null, executada: true, estado: estadoExecutada(v) });
+    }
+  }
+  const temExec = exec.vagas.length > 0;
   const reservas = {};
   for (const it of itens) (reservas[it.dono] ||= []).push(it);
   const ordem = (a) => (a.estado === 'encerrado' ? 1 : 0);
@@ -272,16 +281,59 @@ async function vistaAgora(id) {
       <td>${seloEstado(a.estado)}</td>
       <td>${esc(a.status) || '<span class="fraco">—</span>'}</td>
       <td>${(reservas[a.vaga] || []).map((it) => `<div><code>${esc(it.id)}</code> ${it.estado === 'bloqueada' ? selo('bloqueada', 's-perigo') : ''} <span class="suave">${esc(it.titulo)}</span></div>`).join('') || '<span class="fraco">—</span>'}</td>
+      ${temExec ? `<td>${execDe[a.vaga] ? celulaExecucao(execDe[a.vaga]) : '<span class="fraco">—</span>'}</td>` : ''}
       <td class="esconde-estreito" title="${esc(a.batimento)}">${ha(a.batimento)}</td>
     </tr>`).join('');
   const vagas = agentes.length
     ? `<div class="cartao secao tabela"><table>
-        <thead><tr><th>Vaga</th><th>Papel</th><th>Estado</th><th>Status</th><th>Reserva</th><th class="esconde-estreito">Batimento</th></tr></thead>
+        <thead><tr><th>Vaga</th><th>Papel</th><th>Estado</th><th>Status</th><th>Reserva</th>${temExec ? '<th>Execução</th>' : ''}<th class="esconde-estreito">Batimento</th></tr></thead>
         <tbody>${linhas}</tbody></table></div>`
     : '<p class="vazio">Nenhuma vaga entrou ainda.</p>';
   const nomes = Object.keys(recursos).sort();
   const rec = nomes.length ? `<h2>Recursos</h2><div class="grade">${nomes.map((n) => cartaoRecurso(n, recursos[n])).join('')}</div>` : '';
-  return alertas + `<h2>Vagas</h2>` + vagas + rec;
+  const pausa = exec.plano_pausado_ate
+    ? `<div class="faixa-pausa">Execução pausada até ${hora(exec.plano_pausado_ate)}: ${esc(exec.plano_motivo || 'limite do plano')}</div>`
+    : '';
+  const custo = temExec ? ` <span class="fraco">· US$ ${num(exec.custo_hoje, 2)} hoje</span>` : '';
+  return pausa + alertas + `<h2>Vagas${custo}</h2>` + vagas + rec;
+}
+
+// estadoExecutada é o estado visível de uma vaga executada que ainda não entrou.
+function estadoExecutada(v) {
+  if (v.turno_desde) return 'trabalhando';
+  return { aberta: 'ocioso', suspensa: 'suspenso', fechada: 'encerrado' }[v.estado] || v.estado;
+}
+
+function celulaExecucao(v) {
+  const turno = v.turno_desde
+    ? `turno desde ${hora(v.turno_desde)}`
+    : v.estado === 'aberta' ? 'aguardando' : esc(v.estado);
+  const falhas = v.falhas ? ` · ${selo(`${v.falhas} falha${v.falhas > 1 ? 's' : ''}`, 's-alerta sem-ponto')}` : '';
+  const negacao = v.ultima_negacao ? `<div class="negacao" title="última permissão negada">${esc(v.ultima_negacao)}</div>` : '';
+  const botoes = [];
+  if (v.estado === 'aberta') botoes.push(`<button class="botao" data-vaga-op="fechar" data-vaga="${esc(v.vaga)}" data-papel="${esc(v.papel)}">Fechar</button>`);
+  else botoes.push(`<button class="botao" data-vaga-op="reabrir" data-vaga="${esc(v.vaga)}" data-papel="${esc(v.papel)}">Reabrir</button>`);
+  if (v.pasta && !v.turno_desde) botoes.push(`<button class="botao" data-vaga-op="app" data-vaga="${esc(v.vaga)}">Abrir no app</button>`);
+  return `<div>${turno}${falhas}</div>
+    <div class="fraco">${v.n_turnos} turno${v.n_turnos === 1 ? '' : 's'} · US$ ${num(v.custo_dia, 2)} hoje</div>${negacao}
+    <div class="linha botoes-vaga">${botoes.join('')}<span class="fraco" data-status></span></div>`;
+}
+
+async function agirVaga(botao) {
+  const { vagaOp: op, vaga, papel } = botao.dataset;
+  const p = `/projetos/${enc(estado.rota.id)}`;
+  if (op === 'fechar' && !confirm(`Fechar a vaga ${vaga}? O turno em curso termina e nenhum novo começa.`)) return;
+  const status = botao.parentElement.querySelector('[data-status]');
+  botao.disabled = true;
+  try {
+    if (op === 'fechar') await api(`${p}/vagas/${enc(vaga)}/fechar`, { method: 'POST', body: {} });
+    else if (op === 'reabrir') await api(`${p}/vagas`, { method: 'POST', body: { vaga, papel } });
+    else await api(`${p}/vagas/${enc(vaga)}/app`, { method: 'POST', body: {} });
+    refrescar(true);
+  } catch (e) {
+    status.textContent = e.message;
+    botao.disabled = false;
+  }
 }
 
 function cartaoRecurso(nome, v) {
@@ -883,6 +935,8 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('[data-ext-atualizar]')) { refrescar(true); return; }
   const col = e.target.closest('[data-coluna]');
   if (col) { estado.colunaAberta[col.dataset.coluna] = true; refrescar(true); return; }
+  const vagaOp = e.target.closest('[data-vaga-op]');
+  if (vagaOp) { agirVaga(vagaOp); return; }
   const op = e.target.closest('[data-op]');
   if (op) agirDecisao(op);
 });

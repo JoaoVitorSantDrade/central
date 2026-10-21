@@ -54,6 +54,17 @@ func (e *Engine) Saude(ctx context.Context) (Saude, error) {
 			s.Alertas = append(s.Alertas, fmt.Sprintf("%s (%s) suspensa pela Central depois de falhas seguidas: reabra com central vaga abrir %s", a.Vaga, a.Papel, a.Vaga))
 		}
 	}
+	// Uma vaga executada suspensa antes de entrar não tem linha de agente.
+	vs, err := e.c.VagasExec(ctx)
+	if err != nil {
+		return Saude{}, err
+	}
+	for _, v := range vs {
+		if v.Estado != core.VagaSuspensa || slices.ContainsFunc(as, func(a core.Agent) bool { return a.Vaga == v.Vaga }) {
+			continue
+		}
+		s.Alertas = append(s.Alertas, fmt.Sprintf("%s (%s) suspensa pela Central depois de falhas seguidas: reabra com central vaga abrir %s", v.Vaga, v.Papel, v.Vaga))
+	}
 	estados := make([]string, 0, len(e.cfg.LimiteParado))
 	for est := range e.cfg.LimiteParado {
 		estados = append(estados, est)
