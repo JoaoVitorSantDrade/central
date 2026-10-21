@@ -1,0 +1,11 @@
+{
+  "name": "central",
+  "owner": { "name": "João Vitor" },
+  "plugins": [
+    {
+      "name": "central",
+      "source": "./integrations/claude-code",
+      "description": "Coordenação de times de agentes pela Central (brief, mensagens, tarefas, recursos, sprint)."
+    }
+  ]
+}

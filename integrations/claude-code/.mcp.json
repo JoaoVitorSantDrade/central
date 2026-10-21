@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "central": {
+      "command": "central",
+      "args": ["mcp"]
+    }
+  }
+}

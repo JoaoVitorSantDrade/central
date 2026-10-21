@@ -1,0 +1,8 @@
+{
+  "name": "central",
+  "version": "1.1.0",
+  "description": "Coordenação de times de agentes pela Central: brief por papel, caixa e mensagens, tarefas, travas, recursos e sprint, pelo MCP e pela CLI.",
+  "author": { "name": "João Vitor" },
+  "homepage": "https://github.com/JoaoVitorSantDrade/central",
+  "keywords": ["agents", "coordination", "sprint", "mcp"]
+}

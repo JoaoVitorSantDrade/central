@@ -1,0 +1,147 @@
+{
+  "brief": {
+    "brief": {
+      "blocos": [
+        {
+          "cortado": "booleano",
+          "n": "numero",
+          "texto": "texto",
+          "titulo": "texto",
+          "tokens": "numero"
+        }
+      ],
+      "cortados": [],
+      "papel": "texto",
+      "texto": "texto",
+      "tokens": "numero",
+      "vaga": "texto"
+    },
+    "ok": "booleano"
+  },
+  "caixa": {
+    "mensagens": [
+      {
+        "corpo": "texto",
+        "criada_em": "texto",
+        "de": "texto",
+        "para": "texto",
+        "ref": "texto",
+        "responder_ate": "texto",
+        "seq": "numero",
+        "tipo": "texto"
+      }
+    ],
+    "ok": "booleano"
+  },
+  "entrar": {
+    "agente": {
+      "area": "texto",
+      "batimento": "texto",
+      "cursor": "numero",
+      "entrou_em": "texto",
+      "estado": "texto",
+      "papel": "texto",
+      "pasta": "texto",
+      "status": "texto",
+      "vaga": "texto"
+    },
+    "ok": "booleano"
+  },
+  "enviar": {
+    "mensagem": {
+      "corpo": "texto",
+      "criada_em": "texto",
+      "de": "texto",
+      "para": "texto",
+      "ref": "texto",
+      "responder_ate": "texto",
+      "seq": "numero",
+      "tipo": "texto"
+    },
+    "ok": "booleano"
+  },
+  "erro": {
+    "erro": {
+      "codigo": "texto",
+      "mensagem": "texto"
+    },
+    "ok": "booleano"
+  },
+  "esperar": {
+    "esperou_ms": "numero",
+    "motivo": "texto",
+    "novas": "numero",
+    "ok": "booleano",
+    "primeira": {
+      "corpo": "texto",
+      "criada_em": "texto",
+      "de": "texto",
+      "para": "texto",
+      "ref": "texto",
+      "responder_ate": "texto",
+      "seq": "numero",
+      "tipo": "texto"
+    },
+    "sugestao": "texto"
+  },
+  "item_criar": {
+    "item": {
+      "area": "texto",
+      "arquivos": [],
+      "atualizado_em": "texto",
+      "bloqueante": "booleano",
+      "bloqueios": "numero",
+      "campos": {},
+      "categoria": "texto",
+      "commit": "texto",
+      "criado_em": "texto",
+      "dono": "texto",
+      "estado": "texto",
+      "estado_desde": "texto",
+      "folga": "booleano",
+      "fonte": "texto",
+      "id": "texto",
+      "marco": "numero",
+      "ponta": "texto",
+      "ponta_revisada": "texto",
+      "prioridade": "texto",
+      "recurso": "texto",
+      "sprint": "texto",
+      "tipo": "texto",
+      "titulo": "texto",
+      "visivel_ao_usuario": "booleano"
+    },
+    "ok": "booleano"
+  },
+  "projetos": {
+    "ok": "booleano",
+    "projetos": [
+      {
+        "alertas": "numero",
+        "fila_qa": "numero",
+        "id": "texto",
+        "nome": "texto",
+        "raiz": "texto",
+        "sprint": "nulo",
+        "ultimo_acesso": "texto",
+        "vagas": {
+          "ativo": "numero"
+        }
+      }
+    ]
+  },
+  "proxima": {
+    "descartados": {},
+    "item": "nulo",
+    "motivo": "texto",
+    "ok": "booleano",
+    "sugestao": "texto"
+  },
+  "saude": {
+    "api": "texto",
+    "dados": "texto",
+    "ok": "booleano",
+    "pid": "numero",
+    "versao": "texto"
+  }
+}

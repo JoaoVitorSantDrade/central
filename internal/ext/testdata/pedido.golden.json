@@ -1,0 +1,18 @@
+{
+  "versao": "ext/v1",
+  "acao": "importar",
+  "args": {
+    "arquivos": [
+      "artifacts/entrada/a.mp4"
+    ]
+  },
+  "projeto": {
+    "id": "lyriccut",
+    "nome": "LyricCut",
+    "raiz": "C:/x"
+  },
+  "agente": {
+    "vaga": "PESQ1",
+    "papel": "PESQUISADOR"
+  }
+}
